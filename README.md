@@ -15,6 +15,12 @@
 
 本机通过现有SSH别名`ai-edge`推送，沿用其跳板配置。设备运行目录从设备本地裸仓库更新，不依赖设备访问GitHub。
 
+本机此仓库已单独配置使用Windows OpenSSH，解决Git自带SSH在当前PowerShell/ProxyJump环境中调用`exec ssh`失败的问题；没有修改全局Git或SSH配置。另一台Windows开发电脑若遇到相同问题，可在其仓库内执行：
+
+```powershell
+git config --local core.sshCommand C:/Windows/System32/OpenSSH/ssh.exe
+```
+
 ## 日常同步
 
 在本机仓库中修改并提交所需文件，然后执行：
