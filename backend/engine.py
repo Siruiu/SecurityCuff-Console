@@ -59,7 +59,8 @@ class Engine:
                 return await plugin.assess(obs)
             return await asyncio.wait_for(invoke(), timeout=0.12)
         except Exception as exc:
-            health = "timeout" if isinstance(exc, TimeoutError) else "disconnected" if isinstance(exc, ConnectionError) else "error"
+            # Python 3.10 asyncio.TimeoutError is distinct from built-in TimeoutError.
+            health = "timeout" if isinstance(exc, (TimeoutError, asyncio.TimeoutError)) else "disconnected" if isinstance(exc, ConnectionError) else "error"
             return Assessment(assessment_id=str(uuid4()), algorithm_id=plugin.id, algorithm_version=plugin.version,
                 session_id=obs.session_id, frame_id=obs.frame_id, action_id=(obs.candidate_action or {}).get("action_id"),
                 risk_type="unavailable", score=None, score_meaning=plugin.meaning, assessed_at=time.time(),
