@@ -1,0 +1,433 @@
+{
+  "$defs": {
+    "Assessment": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_id": {
+          "title": "Assessment Id",
+          "type": "string"
+        },
+        "algorithm_id": {
+          "title": "Algorithm Id",
+          "type": "string"
+        },
+        "algorithm_version": {
+          "title": "Algorithm Version",
+          "type": "string"
+        },
+        "config_version": {
+          "default": "demo-v1",
+          "title": "Config Version",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "frame_id": {
+          "title": "Frame Id",
+          "type": "integer"
+        },
+        "action_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action Id"
+        },
+        "risk_type": {
+          "title": "Risk Type",
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Score"
+        },
+        "score_meaning": {
+          "title": "Score Meaning",
+          "type": "string"
+        },
+        "assessed_at": {
+          "title": "Assessed At",
+          "type": "number"
+        },
+        "valid_until": {
+          "title": "Valid Until",
+          "type": "number"
+        },
+        "suggested_action": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Suggested Action"
+        },
+        "processing_ms": {
+          "title": "Processing Ms",
+          "type": "number"
+        },
+        "health": {
+          "enum": ["ok", "timeout", "disconnected", "error"],
+          "title": "Health",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assessment_id",
+        "algorithm_id",
+        "algorithm_version",
+        "session_id",
+        "frame_id",
+        "risk_type",
+        "score",
+        "score_meaning",
+        "assessed_at",
+        "valid_until",
+        "suggested_action",
+        "processing_ms",
+        "health"
+      ],
+      "title": "Assessment",
+      "type": "object"
+    },
+    "Event": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "frame_id": {
+          "title": "Frame Id",
+          "type": "integer"
+        },
+        "at": {
+          "title": "At",
+          "type": "number"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "level": {
+          "title": "Level",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "assessment_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assessment Id"
+        },
+        "request_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Id"
+        },
+        "algorithm_config": {
+          "additionalProperties": true,
+          "title": "Algorithm Config",
+          "type": "object"
+        },
+        "log_ref": {
+          "title": "Log Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "session_id",
+        "frame_id",
+        "at",
+        "kind",
+        "level",
+        "message",
+        "algorithm_config",
+        "log_ref"
+      ],
+      "title": "Event",
+      "type": "object"
+    },
+    "Intervention": {
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "title": "Request Id",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "frame_id": {
+          "title": "Frame Id",
+          "type": "integer"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "requested",
+            "accepted",
+            "rejected",
+            "executed",
+            "failed",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "transitions": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Transitions",
+          "type": "array"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Result"
+        }
+      },
+      "required": [
+        "request_id",
+        "session_id",
+        "frame_id",
+        "source",
+        "action",
+        "reason",
+        "status",
+        "transitions"
+      ],
+      "title": "Intervention",
+      "type": "object"
+    },
+    "InterventionRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "frame_id": {
+          "title": "Frame Id",
+          "type": "integer"
+        },
+        "action": {
+          "enum": ["pause", "resume"],
+          "title": "Action",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": ["request_id", "session_id", "frame_id", "action", "reason"],
+      "title": "InterventionRequest",
+      "type": "object"
+    },
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "device_id": {
+          "title": "Device Id",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "source_id": {
+          "default": "sim-camera",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "stream_epoch": {
+          "title": "Stream Epoch",
+          "type": "string"
+        },
+        "frame_id": {
+          "title": "Frame Id",
+          "type": "integer"
+        },
+        "captured_at": {
+          "title": "Captured At",
+          "type": "number"
+        },
+        "received_at": {
+          "title": "Received At",
+          "type": "number"
+        },
+        "clock_source": {
+          "default": "edge-system-utc; simulated capture; monotonic deadlines",
+          "title": "Clock Source",
+          "type": "string"
+        },
+        "visual_ref": {
+          "title": "Visual Ref",
+          "type": "string"
+        },
+        "robot_state": {
+          "additionalProperties": true,
+          "title": "Robot State",
+          "type": "object"
+        },
+        "task_step": {
+          "additionalProperties": true,
+          "title": "Task Step",
+          "type": "object"
+        },
+        "candidate_action": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Action"
+        }
+      },
+      "required": [
+        "device_id",
+        "session_id",
+        "stream_epoch",
+        "frame_id",
+        "captured_at",
+        "received_at",
+        "visual_ref",
+        "robot_state",
+        "task_step"
+      ],
+      "title": "Observation",
+      "type": "object"
+    },
+    "Session": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "device_id": {
+          "title": "Device Id",
+          "type": "string"
+        },
+        "started_at": {
+          "title": "Started At",
+          "type": "number"
+        },
+        "ended_at": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ended At"
+        },
+        "status": {
+          "enum": ["live", "closed", "interrupted"],
+          "title": "Status",
+          "type": "string"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "string"
+        },
+        "algorithm_config": {
+          "additionalProperties": true,
+          "title": "Algorithm Config",
+          "type": "object"
+        }
+      },
+      "required": [
+        "session_id",
+        "device_id",
+        "started_at",
+        "status",
+        "revision",
+        "algorithm_config"
+      ],
+      "title": "Session",
+      "type": "object"
+    }
+  },
+  "title": "SafeCuff contract v1"
+}

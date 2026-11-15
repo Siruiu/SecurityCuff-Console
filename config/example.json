@@ -1,0 +1,14 @@
+{
+  "device_id": "rk3588-demo",
+  "database": "/home/admin/.local/state/safecuff-console/sessions.sqlite3",
+  "static_dir": "/home/admin/.local/share/safecuff-console/web/current",
+  "allowed_origins": ["https://safetyring.cpolar.cn"],
+  "secure_cookie": true,
+  "viewer_password": "REPLACE_WITH_INDEPENDENT_VIEWER_PASSWORD",
+  "operator_password": "REPLACE_WITH_INDEPENDENT_OPERATOR_PASSWORD",
+  "cookie_secret": "REPLACE_WITH_RANDOM_32_BYTE_SECRET",
+  "quota_mb": 128,
+  "keep_sessions": 12,
+  "interval": 0.5,
+  "session_frames": 1200
+}
