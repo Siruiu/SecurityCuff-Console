@@ -119,6 +119,15 @@ def test_stale_capture_disables_execution_and_recovers(client):
     assert client.get("/healthz").status_code == 200
 
 
+def test_resume_rejects_expired_assessment_before_observation_stale(client):
+    value = command(client, action="resume")
+    client.post("/api/faults", json={"target":"capture","mode":"freeze"})
+    time.sleep(1.65)
+    r = client.post("/api/interventions", json=value).json()
+    assert r["status"] == "rejected"
+    assert "unexpired" in r["result"]
+
+
 def test_websocket_heartbeat_reconnect_capture_independent(client):
     with client.websocket_connect("/api/ws", headers={"origin":ORIGIN}) as ws:
         before = ws.receive_json()["sequence"]

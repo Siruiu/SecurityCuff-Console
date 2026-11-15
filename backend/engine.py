@@ -163,8 +163,12 @@ class Engine:
                 or time.time() - valid_frame["observation"]["captured_at"] > 3
                 or self.metrics["recording_health"] != "ok"):
             self.transition(cmd, "rejected", "stale observation, historical session or recorder unavailable")
-        elif request.action == "resume" and any(a["health"] != "ok" or a["suggested_action"] for a in self.latest["assessments"]):
-            self.transition(cmd, "rejected", "resume requires healthy algorithms without active suggestions")
+        elif request.action == "resume" and (
+            time.monotonic() - self.last_capture_mono >= 1.5
+            or any(a["health"] != "ok" or a["suggested_action"] or a["valid_until"] <= time.time()
+                   for a in self.latest["assessments"])
+        ):
+            self.transition(cmd, "rejected", "resume requires unexpired healthy assessments without active suggestions")
         elif sum(not t.done() for t in self.pending) >= 8:
             self.transition(cmd, "rejected", "simulator command queue full")
         else:
