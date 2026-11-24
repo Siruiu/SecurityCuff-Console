@@ -50,7 +50,7 @@ if args.action == "install":
     if not config.exists():
         value = json.loads((root / "config/example.json").read_text())
         value.update(device_id="rk3588-demo", database=str(state / "sessions.sqlite3"), static_dir=str(web),
-            allowed_origins=["http://127.0.0.1:18080"], public_viewer=False, secure_cookie=True,
+            allowed_origins=["http://127.0.0.1:18080"], anonymous_operator=False, public_viewer=False, secure_cookie=True,
             viewer_password=secrets.token_urlsafe(16), operator_password=secrets.token_urlsafe(16),
             cookie_secret=secrets.token_hex(32))
         fd = os.open(config, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)

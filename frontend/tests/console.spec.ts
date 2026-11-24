@@ -8,10 +8,13 @@ test("login, live frame, receipt, event replay, faults, reconnect, responsive la
   await page.goto("/");
   const loginButton = page.getByRole("button", { name: "操作员登录" });
   const passwordField = page.getByLabel("访问密码");
-  await expect(passwordField.or(loginButton)).toBeVisible();
-  if (await loginButton.isVisible()) await loginButton.click();
-  await passwordField.fill(process.env.DEMO_PASSWORD!);
-  await page.getByRole("button", { name: "进入控制台" }).click();
+  const connected = page.getByText("已连接", { exact: true });
+  await expect(passwordField.or(loginButton).or(connected)).toBeVisible();
+  if (!(await connected.isVisible())) {
+    if (await loginButton.isVisible()) await loginButton.click();
+    await passwordField.fill(process.env.DEMO_PASSWORD!);
+    await page.getByRole("button", { name: "进入控制台" }).click();
+  }
   await expect(page.getByText("已连接", { exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: /模拟观测帧/ })).toBeVisible();
   await page.getByRole("button", { name: "请求模拟暂停" }).click();

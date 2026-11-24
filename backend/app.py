@@ -32,12 +32,13 @@ class Fault(BaseModel):
 def create_app(settings=None):
     if settings is None:
         settings = json.loads(Path(os.environ["SAFECUFF_CONFIG"]).read_text(encoding="utf-8-sig"))
+    anonymous_operator = settings.get("anonymous_operator") is True
     public_viewer = settings.get("public_viewer") is True
     passwords = {role: settings.get(f"{role}_password") for role in ("viewer", "operator")}
     secret = settings.get("cookie_secret", "").encode()
-    if not public_viewer and not all(passwords.values()):
+    if not anonymous_operator and not public_viewer and not all(passwords.values()):
         raise ValueError("external passwords and cookie secret are required")
-    if any(passwords.values()) and not secret:
+    if not anonymous_operator and any(passwords.values()) and not secret:
         raise ValueError("cookie secret is required when password login is enabled")
     revision = os.getenv("SAFECUFF_REVISION", settings.get("revision", "development"))
     allowed = settings.get("allowed_origins", [])
@@ -63,6 +64,8 @@ def create_app(settings=None):
         return None
 
     def access_role(token):
+        if anonymous_operator:
+            return "operator"
         return verify(token) or ("viewer" if public_viewer else None)
 
     def auth(request, operator=False):
@@ -127,7 +130,7 @@ def create_app(settings=None):
     @app.post("/api/login")
     async def login(value: Login, response: Response):
         password = passwords[value.role]
-        if not password:
+        if anonymous_operator or not password:
             raise HTTPException(403, "此角色未开启密码登录")
         now = time.monotonic()
         attempts[:] = [t for t in attempts if now-t < 60]
@@ -148,7 +151,8 @@ def create_app(settings=None):
     @app.get("/api/me")
     async def me(request: Request):
         return {"role": auth(request), "revision": revision, "public_viewer": public_viewer,
-                "operator_login_enabled": bool(passwords["operator"])}
+                "anonymous_operator": anonymous_operator,
+                "operator_login_enabled": not anonymous_operator and bool(passwords["operator"])}
 
     @app.get("/api/state")
     async def state(request: Request):
@@ -202,7 +206,7 @@ def create_app(settings=None):
     async def intervention(value: InterventionRequest, request: Request):
         role = auth(request, True)
         try:
-            return app.state.engine.request(value, role)
+            return app.state.engine.request(value, "anonymous" if anonymous_operator else role)
         except ValueError as exc:
             raise HTTPException(409, str(exc))
 

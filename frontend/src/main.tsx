@@ -59,6 +59,7 @@ function App() {
     [password, setPassword] = useState(""),
     [loginRole, setLoginRole] = useState("operator"),
     [publicViewer, setPublicViewer] = useState(false),
+    [anonymousOperator, setAnonymousOperator] = useState(false),
     [operatorLoginEnabled, setOperatorLoginEnabled] = useState(false),
     [showOperatorLogin, setShowOperatorLogin] = useState(false);
   const [error, setError] = useState(""),
@@ -109,11 +110,13 @@ function App() {
     api<{
       role: string;
       public_viewer: boolean;
+      anonymous_operator: boolean;
       operator_login_enabled: boolean;
     }>("/me")
       .then((v) => {
         setRole(v.role);
         setPublicViewer(v.public_viewer);
+        setAnonymousOperator(v.anonymous_operator);
         setOperatorLoginEnabled(v.operator_login_enabled);
       })
       .catch(() => {})
@@ -428,7 +431,7 @@ function App() {
             <span className="dot" /> rk3588-demo
             <small>仅模拟执行器已启用</small>
           </div>
-          {(!publicViewer || role === "operator") && (
+          {!anonymousOperator && (!publicViewer || role === "operator") && (
             <button
               onClick={async () => {
                 try {
@@ -469,7 +472,9 @@ function App() {
               ) : (
                 <small>公开只读</small>
               ))}
-            <span className="simulation">SIMULATION</span>
+            <span className="simulation">
+              {anonymousOperator ? "免登录模拟" : "SIMULATION"}
+            </span>
             <span
               className={
                 "connection " + (connection === "已连接" ? "good" : "bad")

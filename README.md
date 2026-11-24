@@ -6,7 +6,7 @@
 
 - **实时观察**：查看模拟画面、任务进度、算法状态和风险指标。
 - **事件回放**：从安全事件跳转到触发帧，回看会话、日志和执行回执。
-- **模拟操作**：操作员可提交模拟干预或注入故障，检查界面和执行器的响应。
+- **模拟操作**：提交模拟干预或注入故障，检查界面和执行器的响应。
 
 ## 快速开始
 
@@ -42,17 +42,34 @@ $env:SAFECUFF_CONFIG = 'config/local.json'
 
 ## 访问设置
 
-示例配置开启 `public_viewer`，可直接查看实时数据和历史回放。对外共享时请使用模拟数据。修改配置后重启后端。
+示例配置允许免登录浏览、暂停和注入故障。共享演示中的访客操作作用于同一个模拟实例。接入真实设备前，将 `anonymous_operator` 和 `public_viewer` 都设为 `false`，配置独立密码和签名密钥，再重启后端。
 
 | 配置 | 用途 |
 | --- | --- |
-| `public_viewer` | 设为 `true` 启用免登录只读访问，设为 `false` 要求所有访客登录。 |
-| `operator_password`、`cookie_secret` | 配置独立强密码和随机签名密钥，开启「操作员登录」。只有此角色可执行模拟操作。 |
+| `anonymous_operator` | 设为 `true` 允许免登录执行模拟操作。 |
+| `public_viewer` | 在关闭免登录操作后，设为 `true` 允许免登录只读访问。 |
+| `operator_password`、`cookie_secret` | 在关闭免登录操作后，为操作员配置独立强密码和随机签名密钥。 |
 | `viewer_password` | 关闭免登录时，为只读观察员设置独立密码。 |
 | `allowed_origins` | 填入浏览器使用的完整来源，如 `https://example.cpolar.cn`，末尾无需斜杠。 |
 | `secure_cookie` | 本机 HTTP 使用 `false`，HTTPS 部署使用 `true`。 |
 
 ## 用 cpolar 分享模拟实例
+
+### 共用固定域名
+
+首次按「快速开始」构建前端并在虚拟环境中安装依赖，然后安装 [cpolar](https://www.cpolar.com/docs)。各成员在自己的机器上将同一份私有 cpolar 配置保存在仓库外。首次配置可参考 [cpolar 配置示例](config/cpolar.example.yml)。Linux / macOS 可用 `chmod 600` 限制配置文件权限。
+
+从已激活的项目虚拟环境运行下面的命令，将配置路径和 HTTPS 地址换成团队正在使用的值。脚本启动本机模拟器，通过健康检查后再启动 cpolar，并自动配置公开地址供页面和 WebSocket 使用。
+
+```sh
+python scripts/start-demo.py --cpolar-config /path/to/cpolar.yml --public-origin https://example.cpolar.cn
+```
+
+默认使用本机端口 `18080`，与示例 cpolar 配置一致。若配置用了其他端口，传入 `--port`。若文件内有多个隧道，传入 `--tunnel` 指明本项目的隧道名称。cpolar 不在 PATH 时传入 `--cpolar-bin`。
+
+同一个固定域名由一台机器对外提供演示。换人托管时，原托管者先停止隧道，下一位再启动。使用上面的脚本时，按 `Ctrl+C` 会同时停止它启动的模拟器和隧道。若需要两台机器同时对外演示，为它们分配不同的隧道地址，并确认账号支持所需的在线客户端数。
+
+### 临时地址
 
 1. 在运行控制台的机器上安装 [cpolar](https://www.cpolar.com/docs)，用自己的账号完成客户端认证。先确认 `http://127.0.0.1:18081/healthz` 可访问。
 2. 启动 HTTP 隧道。
@@ -61,15 +78,7 @@ $env:SAFECUFF_CONFIG = 'config/local.json'
    cpolar http -region=cn 18081
    ```
 
-3. 将 cpolar 分配的 **HTTPS 地址**加入 `config/local.json` 的 `allowed_origins`，并设 `secure_cookie` 为 `true`。重启控制台后端，再访问公网首页和 `/healthz`。首页应显示实时连接和持续更新的模拟帧。
-
-如果已经在自己的账号中预留了域名，将 [cpolar 配置示例](config/cpolar.example.yml) 复制到仓库外，填写账号令牌和预留时选择的区域及子域名。将以下示例路径替换为实际配置文件路径，即可按名称启动隧道。
-
-```sh
-cpolar start -config=/path/to/cpolar.yml safecuff
-```
-
-现有的 [recover-demo.py](scripts/recover-demo.py) 用于恢复已部署的固定演示实例。合作者可以用上面的命令独立启动自己的隧道。
+3. 将 cpolar 分配的 **HTTPS 地址**加入 `config/local.json` 的 `allowed_origins`，重启控制台后端，再访问公网首页和 `/healthz`。
 
 ## 开发与测试
 
@@ -90,4 +99,4 @@ python -m pytest -q
 npm run build --prefix frontend
 ```
 
-浏览器测试使用 Playwright。安装 Chromium 后，从环境传入 `DEMO_PASSWORD`，执行 `npm run test:e2e --prefix frontend`。可用 `DEMO_URL` 指定测试实例，默认为本地控制台。测试会向模拟器发送干预和故障请求。
+浏览器测试使用 Playwright。安装 Chromium 后，执行 `npm run test:e2e --prefix frontend`。可用 `DEMO_URL` 指定测试实例，默认为本地控制台。测试实例启用密码时，通过环境变量 `DEMO_PASSWORD` 提供密码。测试会向模拟器发送干预和故障请求。

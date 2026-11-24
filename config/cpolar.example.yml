@@ -3,7 +3,7 @@ authtoken: REPLACE_WITH_YOUR_CPOLAR_AUTHTOKEN
 tunnels:
   safecuff:
     proto: http
-    addr: 18081
+    addr: 18080
     region: cn
     # Set subdomain to a hostname prefix reserved in your own account and region.
     # subdomain: your-safecuff-demo

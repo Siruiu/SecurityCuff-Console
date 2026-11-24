@@ -3,6 +3,7 @@
   "database": "data/sessions.sqlite3",
   "static_dir": "frontend/dist",
   "allowed_origins": ["http://127.0.0.1:18081", "http://127.0.0.1:5173"],
+  "anonymous_operator": true,
   "public_viewer": true,
   "secure_cookie": false,
   "quota_mb": 128,

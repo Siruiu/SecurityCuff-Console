@@ -103,6 +103,29 @@ def test_public_viewer_can_opt_in_to_operator_login(tmp_path):
         assert client.get("/api/me").json()["role"] == "viewer"
 
 
+def test_anonymous_operator_runs_simulator_without_login(tmp_path):
+    settings = {"database": str(tmp_path / "demo.sqlite"), "allowed_origins": [ORIGIN],
+                "anonymous_operator": True, "interval": 0.04}
+    with TestClient(create_app(settings), headers={"origin": ORIGIN}) as client:
+        access = client.get("/api/me").json()
+        assert access["role"] == "operator" and access["anonymous_operator"] is True
+        assert access["operator_login_enabled"] is False
+        with client.websocket_connect("/api/ws") as websocket:
+            for _ in range(10):
+                if websocket.receive_json()["live"]:
+                    break
+            else:
+                pytest.fail("No live frame received")
+        value = command(client)
+        response = client.post("/api/interventions", json=value)
+        assert response.status_code == 200
+        assert response.json()["source"] == "web:anonymous"
+        assert wait_result(client, value["request_id"])["status"] == "executed"
+        fault = {"target": "capture", "mode": "normal"}
+        assert client.post("/api/faults", json=fault).status_code == 200
+        assert client.post("/api/faults", json=fault, headers={"origin": "https://other.invalid"}).status_code == 403
+
+
 def test_intervention_transitions_and_idempotency(client):
     value = command(client)
     first = client.post("/api/interventions", json=value).json()
