@@ -1,0 +1,8 @@
+web_addr: 127.0.0.1:14040
+tunnels:
+  safecuff-web-test:
+    proto: http
+    addr: 127.0.0.1:18080
+    inspect: false
+    subdomain: safetyring
+    region: cn

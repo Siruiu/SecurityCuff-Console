@@ -57,15 +57,15 @@ $env:SAFECUFF_CONFIG = 'config/local.json'
 
 ### 共用固定域名
 
-首次按「快速开始」构建前端并在虚拟环境中安装依赖，然后安装 [cpolar](https://www.cpolar.com/docs)。各成员在自己的机器上将同一份私有 cpolar 配置保存在仓库外。首次配置可参考 [cpolar 配置示例](config/cpolar.example.yml)。Linux / macOS 可用 `chmod 600` 限制配置文件权限。
+首次按「快速开始」构建前端、安装项目依赖和 [cpolar](https://www.cpolar.com/docs)。将 [团队固定隧道配置](config/cpolar.shared.yml) 复制为 `config/local.cpolar.yml`，然后用编辑器在本机副本的顶层添加账号的 `authtoken`。Git 会忽略该副本。Linux / macOS 使用 `chmod 600 config/local.cpolar.yml` 限制文件权限。已有同样配置的成员可以直接使用自己的本机配置。
 
-从已激活的项目虚拟环境运行下面的命令，将配置路径和 HTTPS 地址换成团队正在使用的值。脚本启动本机模拟器，通过健康检查后再启动 cpolar，并自动配置公开地址供页面和 WebSocket 使用。
+从项目虚拟环境运行下面的命令。脚本启动本机模拟器，通过健康检查后再启动 cpolar，并配置页面和 WebSocket 的公开地址。
 
 ```sh
-python scripts/start-demo.py --cpolar-config /path/to/cpolar.yml --public-origin https://example.cpolar.cn
+python scripts/start-demo.py --cpolar-config config/local.cpolar.yml --public-origin https://safetyring.cpolar.cn
 ```
 
-默认使用本机端口 `18080`，与示例 cpolar 配置一致。若配置用了其他端口，传入 `--port`。若文件内有多个隧道，传入 `--tunnel` 指明本项目的隧道名称。cpolar 不在 PATH 时传入 `--cpolar-bin`。
+默认使用本机端口 `18080`。使用其他固定域名时，可参考 [通用配置示例](config/cpolar.example.yml)，并替换命令中的 HTTPS 地址。如果本机配置用了其他端口，传入 `--port`。若文件内有多个隧道，传入 `--tunnel` 指明要启动的隧道。cpolar 不在 PATH 时传入 `--cpolar-bin`。
 
 同一个固定域名由一台机器对外提供演示。换人托管时，原托管者先停止隧道，下一位再启动。使用上面的脚本时，按 `Ctrl+C` 会同时停止它启动的模拟器和隧道。若需要两台机器同时对外演示，为它们分配不同的隧道地址，并确认账号支持所需的在线客户端数。
 
