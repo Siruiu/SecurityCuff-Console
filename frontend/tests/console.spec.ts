@@ -6,7 +6,11 @@ test("login, live frame, receipt, event replay, faults, reconnect, responsive la
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await page.getByLabel("访问密码").fill(process.env.DEMO_PASSWORD!);
+  const loginButton = page.getByRole("button", { name: "操作员登录" });
+  const passwordField = page.getByLabel("访问密码");
+  await expect(passwordField.or(loginButton)).toBeVisible();
+  if (await loginButton.isVisible()) await loginButton.click();
+  await passwordField.fill(process.env.DEMO_PASSWORD!);
   await page.getByRole("button", { name: "进入控制台" }).click();
   await expect(page.getByText("已连接", { exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: /模拟观测帧/ })).toBeVisible();

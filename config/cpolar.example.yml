@@ -1,0 +1,9 @@
+# Copy outside the repository and fill in your own cpolar account token.
+authtoken: REPLACE_WITH_YOUR_CPOLAR_AUTHTOKEN
+tunnels:
+  safecuff:
+    proto: http
+    addr: 18081
+    region: cn
+    # Set subdomain to a hostname prefix reserved in your own account and region.
+    # subdomain: your-safecuff-demo

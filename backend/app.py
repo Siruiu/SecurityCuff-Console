@@ -31,12 +31,16 @@ class Fault(BaseModel):
 
 def create_app(settings=None):
     if settings is None:
-        settings = json.loads(Path(os.environ["SAFECUFF_CONFIG"]).read_text())
-    if not all(settings.get(k) for k in ("viewer_password", "operator_password", "cookie_secret")):
+        settings = json.loads(Path(os.environ["SAFECUFF_CONFIG"]).read_text(encoding="utf-8-sig"))
+    public_viewer = settings.get("public_viewer") is True
+    passwords = {role: settings.get(f"{role}_password") for role in ("viewer", "operator")}
+    secret = settings.get("cookie_secret", "").encode()
+    if not public_viewer and not all(passwords.values()):
         raise ValueError("external passwords and cookie secret are required")
+    if any(passwords.values()) and not secret:
+        raise ValueError("cookie secret is required when password login is enabled")
     revision = os.getenv("SAFECUFF_REVISION", settings.get("revision", "development"))
     allowed = settings.get("allowed_origins", [])
-    secret = settings["cookie_secret"].encode()
     attempts = []
     mutations = []
 
@@ -46,18 +50,23 @@ def create_app(settings=None):
         return base64.urlsafe_b64encode(f"{raw}:{mac}".encode()).decode()
 
     def verify(token):
+        if not secret or not token:
+            return None
         try:
             raw, mac = base64.urlsafe_b64decode(token).decode().rsplit(":", 1)
             role, expiry, _ = raw.split(":")
-            if (role in ("viewer", "operator") and int(expiry) > time.time()
+            if (passwords.get(role) and int(expiry) > time.time()
                     and hmac.compare_digest(mac, hmac.new(secret, raw.encode(), hashlib.sha256).hexdigest())):
                 return role
         except Exception:
             pass
         return None
 
+    def access_role(token):
+        return verify(token) or ("viewer" if public_viewer else None)
+
     def auth(request, operator=False):
-        role = verify(request.cookies.get("safecuff_session", ""))
+        role = access_role(request.cookies.get("safecuff_session", ""))
         if not role:
             raise HTTPException(401, "请登录")
         if operator and role != "operator":
@@ -117,12 +126,15 @@ def create_app(settings=None):
 
     @app.post("/api/login")
     async def login(value: Login, response: Response):
+        password = passwords[value.role]
+        if not password:
+            raise HTTPException(403, "此角色未开启密码登录")
         now = time.monotonic()
         attempts[:] = [t for t in attempts if now-t < 60]
         if len(attempts) >= 30:
             raise HTTPException(429, "登录尝试过多，请稍后重试")
         attempts.append(now)
-        if not hmac.compare_digest(value.password.encode(), settings[value.role + "_password"].encode()):
+        if not hmac.compare_digest(value.password.encode(), password.encode()):
             raise HTTPException(401, "密码错误")
         response.set_cookie("safecuff_session", sign(value.role), httponly=True,
                             secure=settings.get("secure_cookie", True), samesite="strict", max_age=28800)
@@ -135,7 +147,8 @@ def create_app(settings=None):
 
     @app.get("/api/me")
     async def me(request: Request):
-        return {"role": auth(request), "revision": revision}
+        return {"role": auth(request), "revision": revision, "public_viewer": public_viewer,
+                "operator_login_enabled": bool(passwords["operator"])}
 
     @app.get("/api/state")
     async def state(request: Request):
@@ -211,7 +224,7 @@ def create_app(settings=None):
     @app.websocket("/api/ws")
     async def websocket(ws: WebSocket):
         token = ws.cookies.get("safecuff_session", "")
-        if not origin_ok(ws.headers.get("origin")) or not verify(token):
+        if not origin_ok(ws.headers.get("origin")) or not access_role(token):
             await ws.close(code=1008)
             return
         e = app.state.engine
@@ -225,7 +238,7 @@ def create_app(settings=None):
 
         async def send():
             while True:
-                if not verify(token):
+                if not access_role(token):
                     await ws.close(code=1008)
                     return
                 async with send_lock:

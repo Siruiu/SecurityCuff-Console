@@ -69,6 +69,40 @@ def test_auth_role_origin_and_schema(client):
     assert client.get("/api/state").headers["cache-control"] == "no-store"
 
 
+def test_public_viewer_can_read_and_subscribe_but_cannot_operate(tmp_path):
+    settings = {"database": str(tmp_path / "public.sqlite"), "allowed_origins": [ORIGIN],
+                "public_viewer": True, "interval": 0.04}
+    with TestClient(create_app(settings), headers={"origin": ORIGIN}) as client:
+        assert client.get("/api/me").json()["role"] == "viewer"
+        assert client.get("/api/me").json()["operator_login_enabled"] is False
+        with client.websocket_connect("/api/ws") as websocket:
+            for _ in range(10):
+                if websocket.receive_json()["live"]:
+                    break
+            else:
+                pytest.fail("No live frame received")
+        observation = client.get("/api/state").json()["live"]["observation"]
+        assert client.get(observation["visual_ref"]).status_code == 200
+        assert client.get("/api/sessions").status_code == 200
+        assert client.post("/api/interventions", json=command(client)).status_code == 403
+        assert client.post("/api/faults", json={"target": "capture", "mode": "freeze"}).status_code == 403
+        assert client.post("/api/login", json={"role": "operator", "password": ""}).status_code == 403
+
+
+def test_public_viewer_can_opt_in_to_operator_login(tmp_path):
+    settings = {"database": str(tmp_path / "public.sqlite"), "allowed_origins": [ORIGIN],
+                "public_viewer": True, "operator_password": "test-only-password",
+                "cookie_secret": "test-only-cookie-key-0000000000000000", "secure_cookie": False}
+    with TestClient(create_app(settings), headers={"origin": ORIGIN}) as client:
+        assert client.get("/api/me").json()["operator_login_enabled"] is True
+        assert client.post("/api/login", json={"role": "operator", "password": "wrong"}).status_code == 401
+        assert client.post("/api/login", json={"role": "operator", "password": "test-only-password"}).status_code == 200
+        assert client.get("/api/me").json()["role"] == "operator"
+        assert client.post("/api/faults", json={"target": "capture", "mode": "normal"}).status_code == 200
+        assert client.post("/api/logout").status_code == 200
+        assert client.get("/api/me").json()["role"] == "viewer"
+
+
 def test_intervention_transitions_and_idempotency(client):
     value = command(client)
     first = client.post("/api/interventions", json=value).json()

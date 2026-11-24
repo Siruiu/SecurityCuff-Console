@@ -6,6 +6,7 @@ import {
   History,
   Activity,
   Layers,
+  LogIn,
   LogOut,
   ChevronRight,
   Pause,
@@ -56,7 +57,10 @@ function App() {
   const [role, setRole] = useState(""),
     [loading, setLoading] = useState(true),
     [password, setPassword] = useState(""),
-    [loginRole, setLoginRole] = useState("operator");
+    [loginRole, setLoginRole] = useState("operator"),
+    [publicViewer, setPublicViewer] = useState(false),
+    [operatorLoginEnabled, setOperatorLoginEnabled] = useState(false),
+    [showOperatorLogin, setShowOperatorLogin] = useState(false);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [state, setState] = useState<State | null>(null),
@@ -102,8 +106,16 @@ function App() {
     !stale &&
     state?.metrics.recording_health === "ok";
   useEffect(() => {
-    api<{ role: string }>("/me")
-      .then((v) => setRole(v.role))
+    api<{
+      role: string;
+      public_viewer: boolean;
+      operator_login_enabled: boolean;
+    }>("/me")
+      .then((v) => {
+        setRole(v.role);
+        setPublicViewer(v.public_viewer);
+        setOperatorLoginEnabled(v.operator_login_enabled);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
     const t = setInterval(() => setNow(Date.now()), 500);
@@ -257,11 +269,12 @@ function App() {
     setError("");
     try {
       const v = await api<{ role: string }>("/login", {
-        role: loginRole,
+        role: publicViewer ? "operator" : loginRole,
         password,
       });
       setRole(v.role);
       setPassword("");
+      setShowOperatorLogin(false);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -315,7 +328,7 @@ function App() {
   }
 
   if (loading) return <div className="login">正在连接控制台…</div>;
-  if (!role)
+  if (!role || showOperatorLogin)
     return (
       <div className="login">
         <form onSubmit={login}>
@@ -326,16 +339,18 @@ function App() {
           <h1>安全箍观察控制台</h1>
           <p>设备侧持续记录，浏览器连接即可观察。</p>
           <div className="sim-note">模拟环境 · 不连接真实机器人</div>
-          <label>
-            访问身份
-            <select
-              value={loginRole}
-              onChange={(e) => setLoginRole(e.target.value)}
-            >
-              <option value="operator">操作员 · 可模拟干预</option>
-              <option value="viewer">观察员 · 只读</option>
-            </select>
-          </label>
+          {!publicViewer && (
+            <label>
+              访问身份
+              <select
+                value={loginRole}
+                onChange={(e) => setLoginRole(e.target.value)}
+              >
+                <option value="operator">操作员 · 可模拟干预</option>
+                <option value="viewer">观察员 · 只读</option>
+              </select>
+            </label>
+          )}
           <label>
             访问密码
             <input
@@ -354,6 +369,18 @@ function App() {
           <button className="primary" type="submit">
             进入控制台 <ChevronRight size={16} />
           </button>
+          {publicViewer && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowOperatorLogin(false);
+                setPassword("");
+                setError("");
+              }}
+            >
+              返回公开演示
+            </button>
+          )}
           <span className="hint">登录有效期 8 小时 · 独立网页凭据</span>
         </form>
       </div>
@@ -401,16 +428,22 @@ function App() {
             <span className="dot" /> rk3588-demo
             <small>仅模拟执行器已启用</small>
           </div>
-          <button
-            onClick={async () => {
-              await api("/logout", {});
-              setRole("");
-              setState(null);
-            }}
-          >
-            <LogOut size={16} />
-            退出{role === "operator" ? "操作员" : "观察员"}
-          </button>
+          {(!publicViewer || role === "operator") && (
+            <button
+              onClick={async () => {
+                try {
+                  await api("/logout", {});
+                  setRole(publicViewer ? "viewer" : "");
+                  setState(null);
+                } catch (err) {
+                  setError((err as Error).message);
+                }
+              }}
+            >
+              <LogOut size={16} />
+              退出{role === "operator" ? "操作员" : "观察员"}
+            </button>
+          )}
         </div>
       </aside>
       <div className="main">
@@ -422,6 +455,20 @@ function App() {
               : nav.find((x) => x[0] === page)?.[1]}
           </span>
           <div>
+            {publicViewer &&
+              role === "viewer" &&
+              (operatorLoginEnabled ? (
+                <button
+                  onClick={() => {
+                    setError("");
+                    setShowOperatorLogin(true);
+                  }}
+                >
+                  <LogIn size={14} /> 操作员登录
+                </button>
+              ) : (
+                <small>公开只读</small>
+              ))}
             <span className="simulation">SIMULATION</span>
             <span
               className={
@@ -1071,7 +1118,9 @@ function App() {
           <footer>
             <span>
               <span className="dot" /> 设备记录器：
-              {state?.metrics.recording_health === "ok" ? "正常" : "异常"} ·{" "}
+              {state?.metrics.recording_health === "ok"
+                ? "正常"
+                : "异常"} ·{" "}
               {((state?.metrics.recording_bytes || 0) / 1024 ** 2).toFixed(1)} /{" "}
               {state?.metrics.quota_mb || 128} MiB
             </span>
